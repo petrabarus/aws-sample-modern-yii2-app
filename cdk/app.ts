@@ -1,14 +1,32 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import cdk = require('@aws-cdk/core');
+import ecs = require("@aws-cdk/aws-ecs");
+import ecsPatterns = require("@aws-cdk/aws-ecs-patterns");
 
-export class TestStack extends cdk.Stack {
+class WebECSCluster extends cdk.Construct {
+    constructor(scope: cdk.Construct) {
+        super(scope, "WebECSCluster");
+
+        const ecsCluster = new ecs.Cluster(this, 'ecsCluster');
+        new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'Service', {
+            cluster: ecsCluster,
+            taskImageOptions: {
+                image: ecs.ContainerImage.fromAsset('.')
+            },
+        });
+    }
+}
+
+
+class WebStack extends cdk.Stack {
     constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
-
-        // The code that defines your stack goes here
+        new WebECSCluster(this);
     }
 }
 
 const app = new cdk.App();
-new TestStack(app, 'TestStack');
+new WebStack(app, 'WebStack');
+
+app.synth();
