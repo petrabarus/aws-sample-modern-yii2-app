@@ -7,28 +7,37 @@ import 'source-map-support/register';
 import cdk = require('@aws-cdk/core');
 import ecs = require("@aws-cdk/aws-ecs");
 import ecsPatterns = require("@aws-cdk/aws-ecs-patterns");
+import appAutoscaling = require("@aws-cdk/aws-applicationautoscaling");
 
 class WebECSCluster extends cdk.Construct {
+    private fargateService: ecsPatterns.ApplicationLoadBalancedFargateService;
 
     constructor(scope: cdk.Construct) {
         super(scope, "WebECSCluster");
 
         const ecsCluster = new ecs.Cluster(this, 'ecsCluster');
-        const fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'Service', {
+        this.fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'Service', {
             cluster: ecsCluster,
             taskImageOptions: {
                 image: ecs.ContainerImage.fromAsset('.')
             },
         });
 
-        const autoscaling = fargateService.service.autoScaleTaskCount({
+        this.addAutoScaling();
+    }
+
+    addAutoScaling() {
+        const autoScalingGroup = this.fargateService.service.autoScaleTaskCount({
             minCapacity: 2,
-            maxCapacity: 4
+            maxCapacity: 10
         });
-        autoscaling.scaleOnCpuUtilization('CpuScaling', {
-            targetUtilizationPercent: 50,
-            scaleInCooldown: cdk.Duration.seconds(60),
-            scaleOutCooldown: cdk.Duration.seconds(60),
+        autoScalingGroup.scaleOnSchedule('ScaleUpInMorning', {
+            schedule: appAutoscaling.Schedule.cron({hour: '07', minute: '30'}),
+            minCapacity: 10,
+        });
+        autoScalingGroup.scaleOnSchedule('ScaleDownInEvening', {
+            schedule: appAutoscaling.Schedule.cron({hour: '12', minute: '00'}),
+            maxCapacity: 5,
         });
     }
 }
