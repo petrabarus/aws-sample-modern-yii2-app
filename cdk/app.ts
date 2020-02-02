@@ -31,13 +31,10 @@ class WebECSCluster extends cdk.Construct {
             minCapacity: 2,
             maxCapacity: 10
         });
-        autoScalingGroup.scaleOnSchedule('ScaleUpInMorning', {
-            schedule: appAutoscaling.Schedule.cron({hour: '07', minute: '30'}),
-            minCapacity: 10,
-        });
-        autoScalingGroup.scaleOnSchedule('ScaleDownInEvening', {
-            schedule: appAutoscaling.Schedule.cron({hour: '12', minute: '00'}),
-            maxCapacity: 5,
+        autoScalingGroup.scaleOnCpuUtilization('CpuScaling', {
+            targetUtilizationPercent: 50,
+            scaleInCooldown: cdk.Duration.seconds(60),
+            scaleOutCooldown: cdk.Duration.seconds(60),
         });
     }
 }
