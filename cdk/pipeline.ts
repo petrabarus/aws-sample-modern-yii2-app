@@ -65,21 +65,17 @@ class Pipeline extends cdk.Construct {
         input: codepipeline.Artifact,
         output: codepipeline.Artifact
     ): codepipeline.StageProps {
-        const project = new codebuild.PipelineProject(
-            this,
-            'Project',
-            {
-                buildSpec: this.createBuildSpec(),
-                environment: {
-                    buildImage: codebuild.LinuxBuildImage.STANDARD_2_0,
-                    privileged: true,
-                },
-                environmentVariables: {
-                    REPOSITORY_URI: {value: this.ecrRepo.repositoryUri},
-                    CONTAINER_NAME: {value: this.containerName}
-                }
+        const props = {
+            environment: {
+                buildImage: codebuild.LinuxBuildImage.STANDARD_2_0,
+                privileged: true,
+            },
+            environmentVariables: {
+                REPOSITORY_URI: {value: this.ecrRepo.repositoryUri},
+                CONTAINER_NAME: {value: this.containerName}
             }
-        );
+        };
+        const project = new codebuild.PipelineProject(this, 'Project', props);
         this.ecrRepo.grantPullPush(project.grantPrincipal);
         
         const codebuildAction = new codepipeline_actions.CodeBuildAction({
@@ -105,50 +101,6 @@ class Pipeline extends cdk.Construct {
             stageName: stageName,
             actions: [ecsDeployAction],
         }
-    }
-
-    createBuildSpec(): codebuild.BuildSpec {
-        return codebuild.BuildSpec.fromObject({
-            version: '0.2',
-            phases: {
-                install: {
-                    'runtime-versions': {
-                        'nodejs': '10',
-                        'php': '7.3'
-                    },
-                    commands: [
-                        'npm install',
-                        'composer install',
-                    ],
-                },
-                pre_build: {
-                    commands: [
-                        'aws --version',
-                        '$(aws ecr get-login --region ${AWS_DEFAULT_REGION} --no-include-email |  sed \'s|https://||\')',
-                        'COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)',
-                        'IMAGE_TAG=${COMMIT_HASH:=latest}'
-                    ]
-                },
-                build: {
-                    commands: [
-                        'docker build -t $REPOSITORY_URI:latest .',
-                        'docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG',
-                    ]
-                },
-                post_build: {
-                    commands: [
-                        'docker push $REPOSITORY_URI:latest',
-                        'docker push $REPOSITORY_URI:$IMAGE_TAG',
-                        'printf "[{\\"name\\":\\"${CONTAINER_NAME}\\",\\"imageUri\\":\\"${REPOSITORY_URI}:latest\\"}]" > imagedefinitions.json'
-                    ]
-                }
-            },
-            artifacts: {
-                files: [
-                    'imagedefinitions.json'
-                ]
-            }
-        });
     }
 
     output() {
