@@ -49,6 +49,17 @@ $config = [
             'rules' => [
             ],
         ],
+        'session' => [
+            'class' => app\components\Session::class,
+            'clientConfigs' => [
+                'version' => '2012-08-10',
+                'region' => $_ENV['AWS_REGION'],
+                'endpoint' => $_ENV['DYNAMODB_ENDPOINT_URL'] ?? null
+            ],
+            'sessionConfigs' => [
+                'table_name' => $_ENV['DYNAMODB_SESSION_TABLE_NAME']
+            ]
+        ]
     ],
     'params' => $params,
 ];
