@@ -24,5 +24,5 @@ class WebStack extends cdk.Stack {
 }
 
 const app = new cdk.App();
-new WebStack(app, 'WebCiCdStack');
+new WebStack(app, 'MyWebStack');
 app.synth();

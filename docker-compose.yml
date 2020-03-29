@@ -6,4 +6,25 @@ services:
       - ~/.composer-docker/cache:/root/.composer/cache:delegated
       - ./:/app:delegated
     ports:
-      - '8000:80'
+      - '8080:80'
+    environment:
+      AWS_REGION: 'ap-southeast-1'
+      AWS_ACCESS_KEY_ID: 'fake-access-key'
+      AWS_SECRET_ACCESS_KEY: 'fake-secret-key'
+      DYNAMODB_SESSION_TABLE_NAME: 'Sessions'
+      DYNAMODB_ENDPOINT_URL: 'http://localstack:4569'
+    depends_on:
+      - localstack
+
+  localstack:
+    image: localstack/localstack
+    volumes:
+      - ./bin/localstack-setup.sh:/localstack-setup.sh
+    ports:
+      - "4569:4569"
+    environment:
+      SERVICES: 'dynamodb'
+      DEFAULT_REGION: 'ap-southeast-1'
+      AWS_REGION: 'ap-southeast-1'
+      AWS_ACCESS_KEY_ID: 'fake-access-key'
+      AWS_SECRET_ACCESS_KEY: 'fake-secret-key'
